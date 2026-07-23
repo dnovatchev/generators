@@ -1,9 +1,23 @@
 module namespace f = "http://www.w3.org/2005/xpath-functions-2025/generator";
 declare namespace gn = "http://www.w3.org/2005/xpath-functions-2025/generator";
+declare namespace hlp = "http://www.w3.org/2005/xpath-functions-2025/generator";
+
+declare function hlp:while-do($input	as item()*,
+                             $predicate	as function($input as item()*) as xs:boolean,
+                             $action	as function($input as item()*) as item()*
+                            ) as item()*
+{
+  if(not($predicate($input)) ) then $input
+    else
+      let $nextInput := $action($input)
+       return
+         hlp:while-do($nextInput, $predicate, $action)
+      
+};
 
 declare function gn:to-array($gen as map(*)) as array(*)
 {
-   while-do( [$gen, []],
+   hlp:while-do( [$gen, []],
           function( $in-out-args) 
           { $in-out-args(1)?initialized and not($in-out-args(1)?end-reached) },                 
           function($in-out-args) 
