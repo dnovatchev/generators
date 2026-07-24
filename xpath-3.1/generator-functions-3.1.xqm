@@ -15,6 +15,22 @@ declare function hlp:while-do($input	as item()*,
       
 };
 
+declare function hlp:array-empty($inArray as array(*)) as xs:boolean
+{ array:size($inArray) eq 0};
+
+declare function hlp:array-items($inArray as array(*)) as item()*
+{
+  for $n in 1 to array:size($inArray) return $inArray($n)
+};
+
+declare function hlp:array-index-where(
+                        $inArray as array(*),
+                        $predicate as function($member as item()*) as xs:boolean
+                                       )
+{
+  (1 to array:size($inArray))[$predicate($inArray(.))]
+};
+
 declare function gn:to-array($gen as map(*)) as array(*)
 {
    hlp:while-do( [$gen, []],
@@ -384,11 +400,11 @@ declare function gn:scan-right($gen as map(*), $init as item()*, $action as func
 
 declare function gn:help-merge-sorted-generators($arrayOfGens as array(map(*))) as map(*)
 {
-  if(array:empty($arrayOfGens)) then gn:empty-generator()
+  if(hlp:array-empty($arrayOfGens)) then gn:empty-generator()
     else
       let $starts := $arrayOfGens => array:for-each(function($gen){$gen => gn:value()}),
           $minVal := min($starts),
-          $firstMinIndex := ($starts => array:index-where(fn($val){$val eq $minVal}))[1],
+          $firstMinIndex := ($starts => hlp:array-index-where(fn($val){$val eq $minVal}))[1],
           $firstMinGenerator := $arrayOfGens($firstMinIndex),
           $newArrayOfGens := $arrayOfGens => array:remove($firstMinIndex),
           $trimmedGenerator := $firstMinGenerator => gn:skip(1),
@@ -417,7 +433,7 @@ declare function gn:make-generator($provider as function(array(*)) as array(*)) 
       $nextProviderState := $providerResult(1),
       $nextDataItemHolder := $providerResult(2)
     return
-      let $nextGen := if(array:empty($nextDataItemHolder)) 
+      let $nextGen := if(hlp:array-empty($nextDataItemHolder)) 
                    then gn:empty-generator()  
                    else gn:empty-generator()
                     => map:put("state", map{"providerState": $nextProviderState,
@@ -431,7 +447,7 @@ declare function gn:make-generator($provider as function(array(*)) as array(*)) 
                                   let $nextProviderResult := $provider($this?state?providerState),
                                       $nextDataItemHolder := $nextProviderResult(2)
                                     return
-                                      if(array:empty($nextDataItemHolder)) then gn:empty-generator()
+                                      if(hlp:array-empty($nextDataItemHolder)) then gn:empty-generator()
                                       else
                                         $this => map:put("state", map{"current": $nextDataItemHolder(1), 
                                                                       "providerState": $nextProviderResult(1)})
@@ -446,7 +462,7 @@ declare function gn:make-generator-from-array($input as array(*)) as map(*)
   let $size := array:size($input),
       $arrayProvider := function($state as array(xs:integer?))
                         {
-                          let $ind := if(array:empty($state))
+                          let $ind := if(hlp:array-empty($state))
                                       then 0
                                       else $state(1),
                               $newState := if($ind +1 gt $size) then []   
@@ -463,7 +479,7 @@ declare function gn:make-generator-from-sequence($input as item()*) as map(*)
   let $size := count($input),
       $seqProvider := function($state as array(xs:integer?))
                         {
-                          let $ind := if(array:empty($state))
+                          let $ind := if(hlp:array-empty($state))
                                       then 0
                                       else $state(1),
                               $newState := if($ind +1 gt $size) then []   
@@ -482,7 +498,7 @@ declare function gn:make-generator-from-map($inputMap as map(*)) as map(*)
               $mapProvider := function($state as array(xs:integer?))
               {
                 
-                let $ind := if(array:empty($state))
+                let $ind := if(hlp:array-empty($state))
                               then 0
                               else $state(1),
                     $newState := if($ind +1 gt $size) then []   
@@ -500,7 +516,7 @@ declare function gn:make-generator-from-map($inputMap as map(*)) as map(*)
 };
         
 
-declare function gn:to-sequence($gen as map(*)) as item()* {gn:to-array($gen) => array:items()}; 
+declare function gn:to-sequence($gen as map(*)) as item()* {gn:to-array($gen) => hlp:array-items()}; 
 
 declare function gn:to-map($generator as map(*)) as map(*)
         {
